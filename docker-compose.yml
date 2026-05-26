@@ -16,6 +16,7 @@ services:
       DB_NAME: ${DB_NAME}
       STEAM_API_KEY: ${STEAM_API_KEY}
       STEAM_USER_ID: ${STEAM_USER_ID}
+      SYNC_SECRET: ${SYNC_SECRET}
     env_file:
       - .env
     restart: always
