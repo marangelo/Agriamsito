@@ -1,0 +1,18 @@
+services:
+  app:
+    container_name: cn-agriamasito-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8188:4321'
+    environment:
+      HOST: '0.0.0.0'
+      PORT: '4321'
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-usr_agriamasito}
+      DB_PASSWORD: ${DB_PASSWORD:-pwd_agriamasito}
+      DB_NAME: ${DB_NAME:-db_agrimasito}    
+    restart: always
+
