@@ -1,6 +1,4 @@
 // ── API Route: POST /api/sync-steam (streaming) ─────────────
-// Retorna un ReadableStream con eventos progresivos.
-// Cada linea es JSON: { type, ... }
 import type { APIRoute } from 'astro';
 import { query } from '../../lib/db.ts';
 import {
@@ -11,6 +9,30 @@ import {
   getAchievementIconUrl,
   getGameDetails,
 } from '../../lib/steam.ts';
+
+// ── Rate limiter simple (en memoria) ─────────────────────────
+const syncCooldown = new Map<string, number>();
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos entre sincronizaciones
+
+function checkRateLimit(ip: string): { ok: boolean; remaining: number } {
+  const last = syncCooldown.get(ip);
+  const now = Date.now();
+  if (last && now - last < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - (now - last)) / 1000);
+    return { ok: false, remaining };
+  }
+  syncCooldown.set(ip, now);
+  // Limpiar entradas viejas cada tanto
+  if (syncCooldown.size > 1000) {
+    const cutoff = now - COOLDOWN_MS * 2;
+    for (const [k, v] of syncCooldown) {
+      if (v < cutoff) syncCooldown.delete(k);
+    }
+  }
+  return { ok: true, remaining: 0 };
+}
+
+const SYNC_SECRET = (import.meta.env.SYNC_SECRET as string) || process.env.SYNC_SECRET || '';
 
 function sse(data: Record<string, unknown>): string {
   return `data: ${JSON.stringify(data)}\n\n`;
@@ -174,7 +196,34 @@ async function* syncGenerator(): AsyncGenerator<string> {
   });
 }
 
-export const POST: APIRoute = async () => {
+export const POST: APIRoute = async ({ request }) => {
+  // ── Validacion: SYNC_SECRET opcional ────────────────────────
+  if (SYNC_SECRET) {
+    const header = request.headers.get('x-sync-secret') || '';
+    const param = new URL(request.url).searchParams.get('secret') || '';
+    if (header !== SYNC_SECRET && param !== SYNC_SECRET) {
+      return new Response(JSON.stringify({ error: 'Se requiere x-sync-secret valido' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // ── Rate limiting por IP ────────────────────────────────────
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')
+    || 'unknown';
+  const limit = checkRateLimit(ip);
+  if (!limit.ok) {
+    return new Response(JSON.stringify({
+      error: `Debes esperar ${limit.remaining}s entre sincronizaciones`,
+      retry_after: limit.remaining,
+    }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
