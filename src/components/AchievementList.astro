@@ -1,0 +1,86 @@
+<!-- AchievementList.astro — usa paleta CSS personalizada. -->
+---
+export interface Achievement {
+  id: number;
+  steam_achievement_id: string;
+  name: string;
+  description: string | null;
+  icon_url: string | null;
+  unlocked: boolean;
+  unlock_date: string | null;
+}
+
+import ProgressBar from './ProgressBar.astro';
+
+interface Props {
+  achievements: Achievement[];
+  unlockedOnly?: boolean;
+}
+
+const { achievements, unlockedOnly = false } = Astro.props;
+const displayed = unlockedOnly ? achievements.filter((a) => a.unlocked) : achievements;
+const unlockedCount = achievements.filter((a) => a.unlocked).length;
+const totalCount = achievements.length;
+---
+
+<div class="w-full">
+  <div class="mb-5">
+    <ProgressBar value={unlockedCount} max={totalCount}
+                 label={`${unlockedCount}/${totalCount} logros`} size="md" />
+  </div>
+
+  {
+    displayed.length === 0 && (
+      <p class="text-secondary text-sm py-4 text-center italic">Sin logros para mostrar</p>
+    )
+  }
+
+  <div class="space-y-1.5 max-h-80 overflow-y-auto pr-1 scrollbar-hide">
+    {displayed.map((a) => (
+      <div class={`flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200 ${
+        a.unlocked
+          ? 'bg-surface/40 hover:bg-surface-hover/60 border border-border-card hover:border-border-hover'
+          : 'bg-bg-base/40 opacity-40'
+      }`}>
+        <div class="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-bg-base/60 border border-border-card">
+          {a.icon_url ? (
+            <img src={a.icon_url} alt={a.name}
+                 class={`w-full h-full object-cover ${!a.unlocked ? 'grayscale opacity-70' : ''}`}
+                 loading="lazy"
+                 onerror="this.style.display='none'" />
+          ) : (
+            <div class="w-full h-full flex items-center justify-center text-muted">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <p class={`text-sm font-medium truncate ${a.unlocked ? 'text-primary' : 'text-muted'}`}>
+            {a.name}
+          </p>
+          {a.description && (
+            <p class="text-xs text-secondary truncate mt-0.5">{a.description}</p>
+          )}
+        </div>
+
+        <div class="flex-shrink-0 text-right">
+          {a.unlock_date ? (
+            <time datetime={a.unlock_date} class="text-[10px] text-secondary font-mono tracking-wide">
+              {new Date(a.unlock_date).toLocaleDateString('es-MX', {
+                year: 'numeric', month: 'short', day: 'numeric',
+              })}
+            </time>
+          ) : a.unlocked ? (
+            <span class="text-[10px] text-done font-medium">OK</span>
+          ) : (
+            <span class="text-[10px] text-muted">—</span>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>

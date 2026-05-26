@@ -1,0 +1,99 @@
+<!--
+  PlatinumCard.astro — Tarjeta destacada para platinados con paleta CSS.
+-->
+---
+import AchievementList from './AchievementList.astro';
+import type { Achievement } from './AchievementList.astro';
+
+export interface PlatinumGame {
+  id: number;
+  steam_app_id: number;
+  name: string;
+  cover_image_url: string | null;
+  playtime_hours: number;
+  is_platinum: boolean;
+  platinum_date: string | null;
+  display_order: number;
+  achievement_pct: number;
+  achievements?: Achievement[];
+}
+
+type Props = { game: PlatinumGame; };
+
+const { game } = Astro.props as Props;
+const pct = game.achievement_pct ?? 100;
+const hours = Math.round(game.playtime_hours);
+const cardId = `platinum-card-${game.id}`;
+---
+
+<div
+  id={cardId}
+  data-game-id={game.id}
+  class="group relative rounded-2xl overflow-hidden animate-glow cursor-pointer
+         bg-surface border border-platinum/40 hover:border-platinum/70
+         transition-all duration-300 hover:scale-[1.02]"
+>
+  <div class="absolute inset-0 z-10 bg-gradient-to-t from-bg-base via-bg-base/80 to-transparent" />
+  <div class="absolute inset-0 z-10 opacity-30"
+       style="background: radial-gradient(ellipse at 30% 20%, rgba(124, 58, 237, 0.3) 0%, transparent 60%)">
+  </div>
+
+  <div class="absolute inset-0">
+    {game.cover_image_url ? (
+      <img src={game.cover_image_url} alt=""
+           class="w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity duration-500"
+           loading="lazy" />
+    ) : (
+      <div class="w-full h-full bg-surface" />
+    )}
+  </div>
+
+  <div class="relative z-20 p-6 flex flex-col min-h-80">
+    <div class="flex items-start justify-between">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold
+                   bg-platinum/15 text-platinum border border-platinum/40 backdrop-blur-md shadow-lg animate-float">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 5h2a3 3 0 010 6h-2M18 5H6m12 0v1a7 7 0 01-4 6.26V15h2a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1v-4a1 1 0 011-1h2v-2.74A7 7 0 016 6V5m0 0H4a3 3 0 000 6h2"
+                stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        PLATINUM
+      </span>
+      <span class="text-2xl font-bold text-platinum font-mono drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]">
+        {pct}%
+      </span>
+    </div>
+
+    <div class="flex-1" />
+
+    <div class="space-y-2">
+      <h2 class="text-xl font-bold text-primary leading-tight">{game.name}</h2>
+      <div class="flex items-center gap-3 text-sm text-secondary">
+        {game.platinum_date && (
+          <time datetime={game.platinum_date} class="font-mono text-xs text-platinum/70">
+            {new Date(game.platinum_date).toLocaleDateString('es-MX', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            })}
+          </time>
+        )}
+        <span class="text-muted">·</span>
+        <span class="flex items-center gap-1">
+          <svg class="w-3.5 h-3.5 text-accent-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {hours}h
+        </span>
+      </div>
+    </div>
+
+    <div class="achievement-panel mt-4 max-h-0 overflow-hidden transition-all duration-500 opacity-0">
+      <div class="pt-4 border-t border-border-card">
+        {game.achievements && game.achievements.length > 0 ? (
+          <AchievementList achievements={game.achievements} />
+        ) : (
+          <p class="text-secondary text-sm py-2 text-center italic">Cargando logros...</p>
+        )}
+      </div>
+    </div>
+  </div>
+</div>

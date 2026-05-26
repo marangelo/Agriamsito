@@ -1,0 +1,186 @@
+<!--
+  GameDetail.astro
+  Modal de resumen estilo Steam Replay. Se abre al clickear una GameCard.
+  Muestra portada grande, stats, progreso, logros y enlace a Steam.
+-->
+---
+import AchievementList from './AchievementList.astro';
+import type { Achievement } from './AchievementList.astro';
+
+export interface GameSummary {
+  id: number;
+  steam_app_id: number;
+  name: string;
+  cover_image_url: string | null;
+  playtime_hours: number;
+  is_platinum: boolean;
+  platinum_date: string | null;
+  achievement_pct: number;
+  achievements?: Achievement[];
+}
+
+interface Props {
+  game: GameSummary;
+}
+
+const { game } = Astro.props as Props;
+const pct = game.achievement_pct ?? 0;
+const hours = Math.round(game.playtime_hours);
+const isPlat = game.is_platinum;
+
+const achievementCount = game.achievements?.length ?? 0;
+const unlockedCount = game.achievements?.filter((a) => a.unlocked).length ?? 0;
+---
+
+<!-- Overlay full-screen -->
+<div class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto"
+     style="background: rgba(5, 2, 15, 0.88); backdrop-filter: blur(16px)"
+>
+  <!-- Card contenedor -->
+  <div class="relative w-full max-w-2xl bg-surface rounded-2xl border border-border-card overflow-hidden
+              shadow-2xl shadow-accent/20 animate-fade-in-up max-h-[90vh] overflow-y-auto scrollbar-hide">
+
+    <!-- ── Header image ──────────────────────────────────── -->
+    <div class="relative h-56 sm:h-64 overflow-hidden">
+      {game.cover_image_url ? (
+        <img src={game.cover_image_url} alt={game.name}
+             class="w-full h-full object-cover" />
+      ) : (
+        <div class="w-full h-full bg-gradient-to-br from-accent-from to-bg-base flex items-center justify-center">
+          <svg class="w-20 h-20 text-primary/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      )}
+      <!-- Gradiente -->
+      <div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
+
+      <!-- Badge platinum / pct -->
+      {isPlat ? (
+        <span class="absolute top-4 left-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold
+                     bg-platinum/20 text-platinum border border-platinum/40 backdrop-blur-md shadow-lg shadow-platinum/10">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18 5h2a3 3 0 010 6h-2M18 5H6m12 0v1a7 7 0 01-4 6.26V15h2a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1v-4a1 1 0 011-1h2v-2.74A7 7 0 016 6V5m0 0H4a3 3 0 000 6h2"
+                  stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          PLATINUM
+        </span>
+      ) : (
+        <span class="absolute top-4 left-4 px-3 py-1.5 rounded-lg text-xs font-bold font-mono backdrop-blur-md shadow-lg border"
+              style="background: var(--badge-pct-bg); color: var(--badge-pct-text); border-color: var(--badge-pct-border)">
+          {pct}%
+        </span>
+      )}
+
+      <!-- Nombre del juego en el header -->
+      <div class="absolute bottom-4 left-4 right-16">
+        <h2 class="text-2xl sm:text-3xl font-bold text-primary drop-shadow-lg">{game.name}</h2>
+        <p class="text-sm text-secondary mt-0.5">Steam App ID: {game.steam_app_id}</p>
+      </div>
+
+      <!-- Boton cerrar -->
+      <button
+        class="game-detail-close absolute top-4 right-4 w-9 h-9 rounded-full
+               bg-surface/70 border border-border-card backdrop-blur-md
+               flex items-center justify-center text-accent-mid
+               hover:bg-surface hover:text-accent-to hover:border-border-hover
+               transition-all duration-200 shadow-lg z-10"
+        title="Cerrar"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- ── Stats grid ────────────────────────────────────── -->
+    <div class="p-5">
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <!-- Horas jugadas -->
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-lg font-bold font-mono text-primary">{hours}h</p>
+          <p class="text-[10px] text-secondary mt-0.5">Jugadas</p>
+        </div>
+
+        <!-- Logros -->
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          <p class="text-lg font-bold font-mono text-primary">{unlockedCount}/{achievementCount}</p>
+          <p class="text-[10px] text-secondary mt-0.5">Logros</p>
+        </div>
+
+        <!-- Estado -->
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-lg font-bold font-mono text-done">{isPlat ? '100%' : `${pct}%`}</p>
+          <p class="text-[10px] text-secondary mt-0.5">{isPlat ? 'Completado' : 'Progreso'}</p>
+        </div>
+      </div>
+
+      <!-- ── Barra de progreso ────────────────────────────── -->
+      <div class="mb-6">
+        <div class="flex justify-between text-xs text-secondary mb-2">
+          <span>Progreso general</span>
+          <span class="font-mono">{pct}%</span>
+        </div>
+        <div class="h-3 bg-prog-track rounded-full overflow-hidden border border-border-card">
+          <div class="h-full rounded-full transition-all duration-700 ease-out"
+               style="width: ${Math.max(pct, 2)}%;
+                      background: linear-gradient(90deg,
+                        ${isPlat ? '#10b981' : '#7c3aed'},
+                        ${isPlat ? '#4ade80' : '#c084fc'});
+                      box-shadow: inset 0 0 8px ${isPlat ? 'rgba(52,211,153,0.4)' : 'rgba(139,92,246,0.4)'}">
+            <div class="absolute inset-0 rounded-full"
+                 style="background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.5s ease-in-out infinite">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Logros ───────────────────────────────────────── -->
+      {game.achievements && game.achievements.length > 0 && (
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-accent-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            <h3 class="text-sm font-semibold text-primary">Logros</h3>
+          </div>
+          <AchievementList achievements={game.achievements} />
+        </div>
+      )}
+
+      <!-- ── Acciones ─────────────────────────────────────── -->
+      <div class="flex gap-3 pt-2 border-t border-border-card">
+        <a href={`https://store.steampowered.com/app/${game.steam_app_id}`}
+           target="_blank" rel="noopener noreferrer"
+           class="flex-1 text-center bg-gradient-to-r from-btn-from to-btn-to text-btn-text
+                  py-2.5 px-4 rounded-xl text-sm font-semibold
+                  hover:from-btn-hover-from hover:to-btn-hover-to transition-all duration-200
+                  shadow-lg shadow-accent/30 border border-accent/30">
+          Ver en Steam
+        </a>
+        <button
+          class="flex-1 bg-surface text-accent-mid py-2.5 px-4 rounded-xl text-sm font-semibold
+                 hover:bg-surface-hover hover:text-accent-to transition-all duration-200
+                 border border-border-card hover:border-border-hover">
+          Sincronizar logros
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Inter", "system-ui", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Base */
+  --color-bg-base: #0a0414;
+  --color-surface: #0c0718;
+  --color-surface-hover: #140b24;
+
+  /* Texto */
+  --color-primary: #f3e8ff;
+  --color-secondary: rgba(192, 132, 252, 0.70);
+  --color-muted: #7e22ce;
+  --color-hint: #6b21a8;
+
+  /* Acento */
+  --color-accent: #7c3aed;
+  --color-accent-mid: #a855f7;
+  --color-accent-to: #c084fc;
+
+  /* Botones */
+  --color-btn-from: #6d28d9;
+  --color-btn-to: #7c3aed;
+  --color-btn-hover-from: #7c3aed;
+  --color-btn-hover-to: #8b5cf6;
+
+  /* Bordes */
+  --color-border-card: rgba(88, 28, 135, 0.30);
+  --color-border-hover: rgba(147, 51, 234, 0.50);
+  --color-border-focus: #a855f7;
+
+  /* Badge */
+  --color-badge-pct: #a78bfa;
+
+  /* Plata */
+  --color-platinum: #ffd700;
+  --color-platinum-glow: rgba(255, 215, 0, 0.6);
+
+  /* Completado */
+  --color-done: #34d399;
+  --color-done-border: #10b981;
+
+  /* Progreso */
+  --color-prog-track: #0a0414;
+  --color-prog-zinc-from: #52525b;
+  --color-prog-zinc-to: #a1a1aa;
+  --color-prog-indigo-from: #4338ca;
+  --color-prog-indigo-to: #818cf8;
+  --color-prog-purple-from: #7c3aed;
+  --color-prog-purple-to: #c084fc;
+  --color-prog-emerald-from: #10b981;
+  --color-prog-emerald-to: #4ade80;
+
+  /* Estrellas */
+  --color-star-filled: #ffd700;
+  --color-star-empty: oklch(0.35 0.04 280);
+}
+
+:root {
+  --bg-base: #0a0414;
+  --surface-card: #0c0718;
+  --border-card: rgba(88, 28, 135, 0.30);
+  --text-primary: #f3e8ff;
+  --text-secondary: rgba(192, 132, 252, 0.70);
+  --text-muted: #7e22ce;
+  --text-hint: #6b21a8;
+  --accent-from: #7c3aed;
+  --accent-mid: #a855f7;
+  --accent-to: #c084fc;
+  --btn-from: #6d28d9;
+  --btn-to: #7c3aed;
+  --btn-from-hover: #7c3aed;
+  --btn-to-hover: #8b5cf6;
+  --btn-text: #f3e8ff;
+  --border-default: rgba(88, 28, 135, 0.30);
+  --border-hover: rgba(147, 51, 234, 0.50);
+  --border-focus: #a855f7;
+  --badge-pct-bg: rgba(124, 58, 237, 0.20);
+  --badge-pct-text: #a78bfa;
+  --badge-pct-border: rgba(124, 58, 237, 0.40);
+  --platinum-text: #ffd700;
+  --platinum-border: #ffd700;
+  --platinum-bg: rgba(255, 215, 0, 0.15);
+  --done-text: #34d399;
+  --done-border: #10b981;
+  --done-bg: rgba(52, 211, 153, 0.15);
+  --prog-track-bg: #0a0414;
+  --prog-track-border: rgba(88, 28, 135, 0.30);
+  --star-filled: #ffd700;
+  --star-empty: oklch(0.35 0.04 280);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    background: linear-gradient(135deg, var(--bg-base), #120a28);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--text-hint); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+}
+
+@keyframes platinum-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--color-platinum-glow), 0 0 40px rgba(255, 215, 0, 0.2), 0 0 60px rgba(255, 215, 0, 0.1); }
+  50% { box-shadow: 0 0 35px var(--color-platinum-glow), 0 0 70px rgba(255, 215, 0, 0.4), 0 0 100px rgba(255, 215, 0, 0.2); }
+}
+
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes skeleton-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+@utility animate-glow { animation: platinum-glow 3s ease-in-out infinite; }
+@utility animate-float { animation: float 4s ease-in-out infinite; }
+@utility animate-skeleton { animation: skeleton-pulse 1.5s ease-in-out infinite; }
+@utility animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+@utility scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }

@@ -1,0 +1,54 @@
+<!-- ProgressBar.astro — barra de progreso con paleta CSS. -->
+---
+type Props = {
+  value: number;
+  max?: number;
+  label?: string;
+  showPercent?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+};
+
+const { value, max = 100, label, showPercent = true, size = 'md' } = Astro.props as Props;
+const pct = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
+const isComplete = pct >= 100;
+
+const heights: Record<string, string> = { sm: 'h-2.5', md: 'h-3.5', lg: 'h-5' };
+const fontSizes: Record<string, string> = { sm: 'text-[11px]', md: 'text-sm', lg: 'text-base' };
+
+const gradientTag =
+  pct >= 100 ? 'from-prog-emerald-from to-prog-emerald-to'
+  : pct >= 60 ? 'from-prog-purple-from to-prog-purple-to'
+  : pct >= 30 ? 'from-prog-indigo-from to-prog-indigo-to'
+  : 'from-prog-zinc-from to-prog-zinc-to';
+
+const glowColor = isComplete ? 'rgba(52,211,153,0.4)' : 'rgba(139,92,246,0.3)';
+const glowSpread = isComplete ? 'rgba(52,211,153,0.2)' : 'rgba(124,58,237,0.15)';
+---
+
+<div class="w-full">
+  {(label || showPercent) && (
+    <div class="flex justify-between items-baseline mb-1.5">
+      {label && <span class="text-[11px] font-medium text-secondary uppercase tracking-wider">{label}</span>}
+      {showPercent && (
+        <span
+          class={`font-bold font-mono tabular-nums tracking-tight ${fontSizes[size]}`}
+          style={`color: ${isComplete ? 'var(--done-text)' : `oklch(${0.5 + pct * 0.003} ${0.12 + pct * 0.0006} ${280 + pct * 1.2})`}`}
+        >{pct}%</span>
+      )}
+    </div>
+  )}
+
+  <div class={`relative ${heights[size]} bg-prog-track rounded-full overflow-hidden border border-border-card shadow-inner shadow-black/40`}>
+    <div
+      class={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${gradientTag} transition-all duration-1000 ease-out`}
+      style={`width: ${Math.max(pct, 2)}%; box-shadow: inset 0 0 10px ${glowColor}, 0 0 14px ${glowSpread}`}
+    >
+      <div class="absolute inset-0 rounded-full"
+           style="background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.5s ease-in-out infinite">
+      </div>
+    </div>
+    {[25, 50, 75].map((tick) => (
+      <div class="absolute top-0 bottom-0 w-px bg-white/8" style={`left: ${tick}%`}></div>
+    ))}
+  </div>
+</div>

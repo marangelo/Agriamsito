@@ -1,0 +1,621 @@
+<!-- index.astro — Showcase principal con paleta CSS personalizada. -->
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PlatinumCard from '../components/PlatinumCard.astro';
+import GameCard from '../components/GameCard.astro';
+import type { Achievement } from '../components/AchievementList.astro';
+import type { GameWithStats } from './api/games.ts';
+import '../styles/global.css';
+
+interface PlatinumGame extends GameWithStats { achievements: Achievement[]; }
+interface NormalGame extends GameWithStats { achievement_pct: number; }
+
+async function fetchApi<T>(path: string): Promise<T> {
+  try {
+    const res = await fetch(new URL(path, Astro.url));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json() as T;
+  } catch { return [] as unknown as T; }
+}
+
+const gamesResponse = await fetchApi<GameWithStats[]>('/api/games').catch(() => [] as GameWithStats[]);
+const games: GameWithStats[] = Array.isArray(gamesResponse) ? gamesResponse : [];
+
+const platinums: PlatinumGame[] = games.filter((g) => g.is_platinum).map((g) => ({ ...g, achievements: [] }));
+const library: NormalGame[] = games.filter((g) => !g.is_platinum);
+
+for (const p of platinums) {
+  try {
+    const res = await fetchApi<Achievement[]>(`/api/games/${p.id}/achievements`);
+    p.achievements = Array.isArray(res) ? res : [];
+  } catch { p.achievements = []; }
+}
+
+const platinumCount = platinums.length;
+const totalGames = games.length;
+const sortedLibrary = [...library].sort((a, b) => b.playtime_hours - a.playtime_hours);
+const latestPlatinum = platinums[0] ?? null;
+---
+
+<BaseLayout>
+  <!-- Fondo decorativo -->
+  <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-accent-mid/10 blur-3xl"></div>
+    <div class="absolute top-1/3 -left-32 w-80 h-80 rounded-full bg-accent/10 blur-3xl"></div>
+    <div class="absolute bottom-20 right-1/4 w-64 h-64 rounded-full bg-accent-mid/8 blur-3xl"></div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <!-- HERO -->
+    <section class="relative text-center mb-24 py-16 sm:py-20">
+      {latestPlatinum?.cover_image_url && (
+        <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-screen">
+          <img src={latestPlatinum.cover_image_url} alt="" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/85 to-bg-base/70"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-bg-base/60 via-transparent to-bg-base/60"></div>
+        </div>
+      )}
+      <div class="relative z-10 animate-fade-in-up">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium
+                     bg-surface border border-border-card text-accent-mid mb-6 shadow-lg">
+          <span class="w-1.5 h-1.5 rounded-full bg-platinum animate-pulse shadow-[0_0_6px_rgba(255,215,0,0.6)]"></span>
+          Steam Library Showcase
+        </span>
+
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none">
+          <span class="bg-gradient-to-b from-white via-primary to-accent-to bg-clip-text text-transparent">Platinum</span>
+          <span class="text-platinum drop-shadow-[0_0_20px_rgba(255,215,0,0.3)]">Showcase</span>
+        </h1>
+
+        <p class="mt-6 text-lg text-secondary max-w-2xl mx-auto leading-relaxed">
+          Una coleccion curada de mis juegos platinados. Cada uno representa
+          horas de dedicacion, habilidad y amor por el gaming.
+        </p>
+
+        <div class="flex items-center justify-center gap-8 mt-10">
+          <div class="text-center" id="platinum-counter">
+            <span class="block text-4xl sm:text-5xl font-bold text-platinum font-mono drop-shadow-[0_0_15px_rgba(255,215,0,0.3)]"
+                  id="platinum-count" data-target={String(platinumCount)}>0</span>
+            <span class="text-sm text-secondary mt-1 block font-medium">Platinos</span>
+          </div>
+          <div class="w-px h-14 bg-border-card"></div>
+          <div class="text-center">
+            <span class="block text-4xl sm:text-5xl font-bold text-primary font-mono">{totalGames}</span>
+            <span class="text-sm text-secondary mt-1 block font-medium">Juegos</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLATINUM -->
+    {platinumCount > 0 && (
+      <section class="mb-24">
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 rounded-xl bg-platinum/10 border border-platinum/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-platinum" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 5h2a3 3 0 010 6h-2M18 5H6m12 0v1a7 7 0 01-4 6.26V15h2a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1v-4a1 1 0 011-1h2v-2.74A7 7 0 016 6V5m0 0H4a3 3 0 000 6h2"
+                    stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-primary">Juegos Platinados</h2>
+          <span class="text-sm text-secondary font-mono bg-surface px-2.5 py-0.5 rounded-full border border-border-card">
+            {platinumCount}
+          </span>
+        </div>
+
+        <div id="platinum-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {platinums.map((game) => <PlatinumCard game={game} />)}
+        </div>
+      </section>
+    )}
+
+    <!-- SKELETON -->
+    {totalGames === 0 && (
+      <section class="text-center py-20">
+        <div class="animate-skeleton space-y-6 max-w-lg mx-auto">
+          <div class="h-8 bg-surface rounded-lg w-3/4 mx-auto border border-border-card"></div>
+          <div class="h-4 bg-surface rounded w-1/2 mx-auto"></div>
+          <div class="grid grid-cols-2 gap-4 mt-8">
+            {[1, 2, 3, 4].map((_i) => (
+              <div class="h-48 bg-surface rounded-xl border border-border-card"></div>
+            ))}
+          </div>
+        </div>
+        <p class="mt-6 text-secondary text-sm">
+          No hay juegos aun.{' '}
+          <button class="text-accent-mid hover:text-accent-to underline underline-offset-4 decoration-border-card"
+                  onclick="document.getElementById('syncModal')?.classList.remove('hidden')">
+            Sincronizar desde Steam
+          </button>
+        </p>
+      </section>
+    )}
+
+    <!-- LIBRARY -->
+    {sortedLibrary.length > 0 && (
+      <section>
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 rounded-xl bg-surface border border-border-card flex items-center justify-center">
+            <svg class="w-5 h-5 text-accent-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 5 4 6 4 7z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M16 2v4M8 2v4M4 10h16" />
+            </svg>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-primary">Biblioteca</h2>
+          <span class="text-sm text-secondary font-mono bg-surface px-2.5 py-0.5 rounded-full border border-border-card">
+            {sortedLibrary.length}
+          </span>
+        </div>
+        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {sortedLibrary.map((game) => <GameCard game={game} />)}
+        </div>
+      </section>
+    )}
+  </main>
+
+  <!-- Boton flotante -->
+  <button id="addGameBtn"
+          class="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full
+                 bg-gradient-to-br from-btn-from to-btn-to text-btn-text
+                 shadow-lg shadow-accent/40 hover:shadow-accent/50
+                 hover:from-btn-hover-from hover:to-btn-hover-to
+                 hover:scale-110 active:scale-95 transition-all duration-300
+                 flex items-center justify-center border border-accent/30"
+          title="Agregar juego">
+    <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+  </button>
+
+  <!-- MODAL -->
+  <div id="addModal"
+       class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
+       style="background: rgba(5, 2, 15, 0.85); backdrop-filter: blur(12px)">
+    <div class="bg-surface border border-border-card rounded-2xl p-6 w-full max-w-md
+                animate-fade-in-up shadow-2xl shadow-accent/30">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-primary">Agregar juego</h3>
+        <button id="closeModal"
+                class="w-8 h-8 rounded-lg bg-surface border border-border-card
+                       text-accent-mid hover:text-accent-to hover:border-border-hover
+                       transition-all flex items-center justify-center">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="addGameForm" class="space-y-4">
+        <div>
+          <label for="steamAppId" class="block text-sm text-accent-mid mb-1 font-medium">Steam App ID</label>
+          <input type="number" id="steamAppId" name="steam_app_id" required placeholder="Ej: 730 (CS2)"
+                 class="w-full bg-bg-base/60 border border-border-card rounded-lg px-4 py-2.5
+                        text-primary placeholder-muted/60
+                        focus:outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 transition-all" />
+        </div>
+        <div>
+          <label for="gameName" class="block text-sm text-accent-mid mb-1 font-medium">Nombre del juego</label>
+          <input type="text" id="gameName" name="name" required placeholder="Counter-Strike 2"
+                 class="w-full bg-bg-base/60 border border-border-card rounded-lg px-4 py-2.5
+                        text-primary placeholder-muted/60
+                        focus:outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 transition-all" />
+        </div>
+        <button type="submit"
+                class="w-full bg-gradient-to-r from-btn-from to-btn-to text-btn-text font-semibold rounded-lg px-4 py-2.5
+                       hover:from-btn-hover-from hover:to-btn-hover-to transition-all shadow-lg shadow-accent/30 border border-accent/30">
+          Agregar juego
+        </button>
+      </form>
+
+      <div class="mt-4 pt-4 border-t border-border-card">
+        <p class="text-xs text-secondary mb-3">O sincroniza toda tu biblioteca desde Steam:</p>
+        <button id="syncSteamBtn"
+                class="w-full bg-surface hover:bg-surface-hover text-accent-mid hover:text-accent-to rounded-lg px-4 py-2.5
+                       transition-all text-sm border border-border-card hover:border-border-hover">
+          Sincronizar desde Steam
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"
+       class="fixed bottom-24 right-8 z-[110] px-5 py-3 rounded-xl text-sm font-medium
+              translate-y-24 opacity-0 transition-all duration-300 pointer-events-none shadow-lg backdrop-blur-md">
+  </div>
+
+  <!-- Game detail modal container -->
+  <div id="game-detail-container"></div>
+
+  <!-- Sync progress modal -->
+  <div id="syncProgressModal"
+       class="fixed inset-0 z-[200] hidden items-center justify-center p-4"
+       style="background: rgba(5, 2, 15, 0.88); backdrop-filter: blur(16px)">
+    <div class="bg-surface border border-border-card rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-accent/30 animate-fade-in-up">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-6 h-6 rounded-full border-2 border-accent-mid border-t-transparent animate-spin"></div>
+        <h3 class="text-lg font-semibold text-primary">Sincronizando con Steam</h3>
+      </div>
+
+      <!-- Juego actual -->
+      <p id="syncCurrentGame" class="text-sm text-secondary truncate mb-4">
+        Preparando...
+      </p>
+
+      <!-- Barra de progreso -->
+      <div class="mb-2">
+        <div class="flex justify-between text-xs text-secondary mb-1.5">
+          <span id="syncLabel" class="font-mono">0/0</span>
+          <span id="syncPercent" class="font-mono">0%</span>
+        </div>
+        <div class="h-3.5 bg-prog-track rounded-full overflow-hidden border border-border-card">
+          <div id="syncProgressFill"
+               class="h-full rounded-full bg-gradient-to-r from-accent-from to-accent-mid transition-all duration-300 ease-out"
+               style="width: 0%">
+            <div class="absolute inset-0 rounded-full"
+                 style="background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.5s ease-in-out infinite">
+          </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-3 mt-5">
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-2.5 text-center">
+          <p id="syncCompleted" class="text-lg font-bold font-mono text-primary">0</p>
+          <p class="text-[10px] text-secondary">Completados</p>
+        </div>
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-2.5 text-center">
+          <p id="syncPlatinums" class="text-lg font-bold font-mono text-platinum">0</p>
+          <p class="text-[10px] text-secondary">Platinos</p>
+        </div>
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-2.5 text-center">
+          <p id="syncErrors" class="text-lg font-bold font-mono text-muted">0</p>
+          <p class="text-[10px] text-secondary">Errores</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data store: games data para el cliente -->
+  <script is:inline define:vars={{ GAMES: games.map((g) => ({
+    id: g.id,
+    steam_app_id: g.steam_app_id,
+    name: g.name,
+    cover_image_url: g.cover_image_url,
+    description: g.description,
+    icon_hash: (g as any).icon_hash,
+    playtime_hours: g.playtime_hours,
+    is_platinum: g.is_platinum,
+    platinum_date: g.platinum_date,
+    achievement_pct: g.achievement_pct,
+  })) }}>
+    window.GAMES_DATA = GAMES;
+  </script>
+</BaseLayout>
+
+<script>
+  const addBtn = document.getElementById('addGameBtn');
+  const modal = document.getElementById('addModal');
+  const closeBtn = document.getElementById('closeModal');
+
+  addBtn?.addEventListener('click', () => { modal?.classList.remove('hidden'); modal?.classList.add('flex'); });
+  closeBtn?.addEventListener('click', () => { modal?.classList.add('hidden'); modal?.classList.remove('flex'); });
+  modal?.addEventListener('click', (e) => { if (e.target === modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); } });
+
+  function showToast(message: string, isError = false) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.className = `fixed bottom-24 right-8 z-[110] px-5 py-3 rounded-xl text-sm font-medium translate-y-0 opacity-100 transition-all duration-300 shadow-lg backdrop-blur-md ${isError ? 'bg-red-900/80 text-red-200 border border-red-700/40' : 'bg-accent/80 text-primary border border-border-hover'}`;
+    setTimeout(() => { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('translate-y-24', 'opacity-0'); }, 3000);
+  }
+
+  const form = document.getElementById('addGameForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = { steam_app_id: Number(formData.get('steam_app_id')), name: formData.get('name'), playtime_hours: 0, display_order: 0 };
+    try {
+      const res = await fetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res.ok) { showToast('Juego agregado correctamente'); modal?.classList.add('hidden'); modal?.classList.remove('flex'); form.reset(); setTimeout(() => location.reload(), 800); }
+      else { showToast('Error al agregar juego', true); }
+    } catch { showToast('Error de conexion', true); }
+  });
+
+  const syncBtn = document.getElementById('syncSteamBtn');
+  syncBtn?.addEventListener('click', async () => {
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+
+    const progressModal = document.getElementById('syncProgressModal');
+    const label = document.getElementById('syncLabel');
+    const percent = document.getElementById('syncPercent');
+    const fill = document.getElementById('syncProgressFill');
+    const currentGame = document.getElementById('syncCurrentGame');
+    const completed = document.getElementById('syncCompleted');
+    const platinums = document.getElementById('syncPlatinums');
+    const errorsCount = document.getElementById('syncErrors');
+
+    if (!progressModal) return;
+
+    // Resetear UI
+    progressModal.classList.remove('hidden');
+    progressModal.classList.add('flex');
+    if (label) label.textContent = '0/0';
+    if (percent) percent.textContent = '0%';
+    if (fill) fill.style.width = '0%';
+    if (currentGame) currentGame.textContent = 'Conectando con Steam...';
+    if (completed) completed.textContent = '0';
+    if (platinums) platinums.textContent = '0';
+    if (errorsCount) errorsCount.textContent = '0';
+
+    try {
+      const res = await fetch('/api/sync-steam', { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No se pudo leer la respuesta');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+    let platCount = 0;
+
+    try {
+            const event = JSON.parse(line.slice(6));
+
+            if (event.type === 'start') {
+              if (currentGame) currentGame.textContent = event.message || '';
+            }
+
+            if (event.type === 'progress') {
+              const gameLabel = event.current ?? 0;
+              const gameTotal = event.total ?? 1;
+              const pct = Math.round((gameLabel / gameTotal) * 100);
+              if (label) label.textContent = `${gameLabel}/${gameTotal}`;
+              if (percent) percent.textContent = `${pct}%`;
+              if (fill) fill.style.width = `${Math.max(pct, 2)}%`;
+              if (currentGame) currentGame.textContent = event.message || '';
+              if (completed) completed.textContent = String(gameLabel);
+              if (platinums) platinums.textContent = String(platCount);
+            }
+
+            if (event.type === 'platinum') {
+              platCount++;
+              if (platinums) platinums.textContent = String(platCount);
+            }
+
+            if (event.type === 'done') {
+              if (fill) fill.style.width = '100%';
+              if (percent) percent.textContent = '100%';
+              if (completed) completed.textContent = String(event.synced ?? 0);
+              if (platinums) platinums.textContent = String(event.platinums_found ?? 0);
+              if (errorsCount) errorsCount.textContent = String(event.errors ?? 0);
+              if (currentGame) currentGame.textContent = 'Completado ✓';
+              // Cerrar progreso y recargar
+              setTimeout(() => {
+                progressModal.classList.add('hidden');
+                progressModal.classList.remove('flex');
+                showToast(event.message || 'Sincronizacion completa');
+                setTimeout(() => location.reload(), 1000);
+              }, 1200);
+            }
+
+            if (event.type === 'error') {
+              if (currentGame) currentGame.textContent = `Error: ${event.message}`;
+              setTimeout(() => {
+                progressModal.classList.add('hidden');
+                progressModal.classList.remove('flex');
+                showToast(`Error: ${event.message}`, true);
+              }, 2000);
+            }
+          } catch {}
+        }
+      }
+    } catch (err) {
+      progressModal.classList.add('hidden');
+      progressModal.classList.remove('flex');
+      showToast(`Error de conexion: ${err}`, true);
+    }
+  });
+
+  function animateCountUp(el: HTMLElement, target: number, duration = 1500) {
+    const startTime = performance.now(); const startVal = 0;
+    function update(now: number) {
+      const elapsed = now - startTime; const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = String(Math.round(startVal + (target - startVal) * eased));
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  const countEl = document.getElementById('platinum-count');
+  const counterSection = document.getElementById('platinum-counter');
+  if (counterSection && countEl) {
+    const target = Number(countEl.dataset.target) || 0;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => { if (entry.isIntersecting) { animateCountUp(countEl, target); observer.unobserve(entry.target); } });
+    }, { threshold: 0.5 });
+    observer.observe(counterSection);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  GAME DETAIL MODAL
+  // ═══════════════════════════════════════════════════════════
+
+  function buildDetailHTML(game: any, achievements: any[]): string {
+    const pct = game.achievement_pct ?? 0;
+    const hours = Math.round(game.playtime_hours);
+    const isPlat = game.is_platinum;
+    const ac = achievements.length;
+    const unlockedCount = achievements.filter((a: any) => a.unlocked).length;
+
+    const gradeStyle = isPlat
+      ? 'from-emerald-500 to-green-400'
+      : 'from-accent-from to-accent-to';
+    const glowStyle = isPlat
+      ? 'rgba(52,211,153,0.4)'
+      : 'rgba(139,92,246,0.4)';
+
+    return `
+<div class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto"
+     style="background:rgba(5,2,15,0.88);backdrop-filter:blur(16px)">
+  <div class="relative w-full max-w-4xl bg-surface rounded-2xl border border-border-card shadow-2xl shadow-accent/20 animate-fade-in-up scrollbar-hide">
+    <div class="relative h-64 sm:h-80 overflow-hidden">
+      ${game.cover_image_url
+        ? `<img src="${game.cover_image_url}" alt="${game.name}" class="w-full h-full object-cover" />`
+        : `<div class="w-full h-full bg-gradient-to-br from-accent-from to-bg-base"></div>`}
+      <div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent"></div>
+      ${isPlat
+        ? `<span class="absolute top-4 left-4 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-platinum/20 text-platinum border border-platinum/40 backdrop-blur-md shadow-lg">PLATINUM</span>`
+        : `<span class="absolute top-4 left-4 px-3 py-1.5 rounded-lg text-xs font-bold font-mono backdrop-blur-md shadow-lg border" style="background:var(--badge-pct-bg);color:var(--badge-pct-text);border-color:var(--badge-pct-border)">${pct}%</span>`}
+      <div class="absolute bottom-4 left-4 right-16 flex items-center gap-3">
+        ${game.icon_hash
+          ? `<img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${game.steam_app_id}/${game.icon_hash}.jpg" alt="" class="w-10 h-10 rounded-lg object-cover border border-white/10 shadow-lg flex-shrink-0" />`
+          : game.cover_image_url
+            ? `<img src="${game.cover_image_url}" alt="" class="w-10 h-10 rounded-lg object-cover border border-white/10 shadow-lg flex-shrink-0" />`
+            : ''}
+        <div class="min-w-0">
+          <h2 class="text-2xl sm:text-3xl font-bold text-primary drop-shadow-lg truncate">${game.name}</h2>
+          <p class="text-sm text-secondary mt-0.5">Steam App ID: ${game.steam_app_id}</p>
+        </div>
+      </div>
+      <button class="game-detail-close absolute top-4 right-4 w-9 h-9 rounded-full bg-surface/70 border border-border-card backdrop-blur-md flex items-center justify-center text-accent-mid hover:bg-surface hover:text-accent-to hover:border-border-hover transition-all duration-200 shadow-lg"> <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+    </div>
+    <div class="p-5">
+      ${game.description ? `<p class="text-sm text-secondary leading-relaxed mb-4">${game.description}</p>` : ''}
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p class="text-lg font-bold font-mono text-primary">${hours}h</p>
+          <p class="text-[10px] text-secondary mt-0.5">Jugadas</p>
+        </div>
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+          <p class="text-lg font-bold font-mono text-primary">${unlockedCount}/${ac}</p>
+          <p class="text-[10px] text-secondary mt-0.5">Logros</p>
+        </div>
+        <div class="bg-bg-base/60 rounded-xl border border-border-card p-3 text-center">
+          <svg class="w-5 h-5 mx-auto text-accent-mid mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p class="text-lg font-bold font-mono text-done">${isPlat ? '100%' : pct + '%'}</p>
+          <p class="text-[10px] text-secondary mt-0.5">${isPlat ? 'Completado' : 'Progreso'}</p>
+        </div>
+      </div>
+      <div class="mb-6">
+        <div class="flex items-start gap-3">
+          <img src="/logro.png" alt="" class="w-8 h-8 flex-shrink-0 mt-0.5" />
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-secondary mb-1">Has desbloqueado <strong class="text-primary font-mono">${unlockedCount}</strong><span class="text-muted">/${ac}</span> logros</div>
+            <div class="h-3 bg-prog-track rounded overflow-hidden border border-border-card">
+          <div class="h-full rounded bg-gradient-to-r ${gradeStyle} transition-all duration-700 ease-out" style="width:${Math.max(pct,2)}%;box-shadow:inset 0 0 8px ${glowStyle}">
+            <div class="absolute inset-0 rounded" style="background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.12) 50%,transparent 100%);background-size:200% 100%;animation:shimmer 2.5s ease-in-out infinite"></div>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+      ${achievements.length > 0 ? `
+      <div class="mb-6">
+        <div class="flex flex-wrap gap-3">
+          ${achievements.map((a: any) => `
+          <div class="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-bg-base/60 border-2 ${a.unlocked ? 'border-emerald-900/60 shadow-[0_0_8px_rgba(52,211,153,0.15)]' : 'border-border-card opacity-50 grayscale'}" title="${(a.name || '') + (a.description ? ': ' + a.description : '')}">
+            ${a.icon_url ? `<img src="${a.icon_url}" alt="${a.name || ''}" class="w-full h-full object-cover" onerror="this.style.display='none'" />` : '<div class="w-full h-full flex items-center justify-center text-muted"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg></div>'}
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="flex gap-3 pt-2 border-t border-border-card">
+        <a href="https://store.steampowered.com/app/${game.steam_app_id}" target="_blank" rel="noopener noreferrer"
+           class="flex-1 text-center bg-gradient-to-r from-btn-from to-btn-to text-btn-text py-2.5 px-4 rounded-xl text-sm font-semibold hover:from-btn-hover-from hover:to-btn-hover-to transition-all duration-200 shadow-lg shadow-accent/30 border border-accent/30">
+          Ver en Steam
+        </a>
+        <button class="detail-sync-btn flex-1 bg-surface text-accent-mid py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-surface-hover hover:text-accent-to transition-all duration-200 border border-border-card hover:border-border-hover">
+          Sincronizar logros
+        </button>
+      </div>
+      <button class="game-detail-close absolute top-4 right-4 w-9 h-9 rounded-full bg-surface/70 border border-border-card backdrop-blur-md flex items-center justify-center text-accent-mid hover:bg-surface hover:text-accent-to hover:border-border-hover transition-all duration-200 shadow-lg"> <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+    </div>
+  </div>
+</div>`;
+  }
+
+  async function openGameDetail(gameId: number) {
+    const games = (window as any).GAMES_DATA;
+    if (!games) return;
+    const game = games.find((g: any) => g.id === gameId);
+    if (!game) return;
+
+    const container = document.getElementById('game-detail-container');
+    if (!container) return;
+
+    // Mostrar modal con skeleton mientras carga
+    container.innerHTML = buildSkeletonHTML(game);
+    attachCloseHandlers(container);
+
+    // Fetch achievements
+    let achievements: any[] = [];
+    try {
+      const res = await fetch(`/api/games/${gameId}/achievements`);
+      if (res.ok) achievements = await res.json();
+    } catch {}
+
+    // Reemplazar skeleton con datos reales
+    container.innerHTML = buildDetailHTML(game, achievements);
+    attachCloseHandlers(container);
+  }
+
+  function buildSkeletonHTML(_game: any): string {
+    return `
+<div class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto"
+     style="background:rgba(5,2,15,0.88);backdrop-filter:blur(16px)">
+  <div class="relative w-full max-w-4xl bg-surface rounded-2xl border border-border-card shadow-2xl shadow-accent/20 animate-fade-in-up">
+    <div class="relative h-64 sm:h-80 overflow-hidden bg-gradient-to-br from-accent-from/30 to-bg-base animate-skeleton">
+      <div class="absolute bottom-4 left-4">
+        <h2 class="text-2xl sm:text-3xl font-bold text-primary drop-shadow-lg">${_game.name}</h2>
+        <p class="text-sm text-secondary mt-0.5">Cargando informacion...</p>
+      </div>
+    </div>
+    <div class="p-5 space-y-5">
+      <div class="grid grid-cols-3 gap-4">
+        ${[1,2,3].map(() => '<div class="h-24 bg-surface rounded-xl border border-border-card animate-skeleton"></div>').join('')}
+      </div>
+      <div class="h-3 bg-surface rounded-full border border-border-card animate-skeleton"></div>
+      <div class="space-y-2">
+        ${[1,2,3,4].map(() => '<div class="h-12 bg-surface rounded-lg border border-border-card animate-skeleton"></div>').join('')}
+      </div>
+    </div>
+  </div>
+</div>`;
+  }
+
+  function attachCloseHandlers(container: HTMLElement) {
+    container.querySelectorAll('.game-detail-close').forEach((btn) => {
+      btn.addEventListener('click', () => { container.innerHTML = ''; });
+    });
+    container.addEventListener('click', (e) => {
+      if (e.target === container.firstElementChild) container.innerHTML = '';
+    });
+  }
+
+  // Click delegation on card grids
+  document.querySelectorAll('[data-game-id]').forEach((card) => {
+    card.addEventListener('click', (_e) => {
+      const id = Number((card as HTMLElement).dataset.gameId);
+      if (id) openGameDetail(id);
+    });
+  });
+</script>

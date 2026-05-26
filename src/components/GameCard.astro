@@ -1,0 +1,183 @@
+<!--
+  GameCard.astro — Tarjeta estilo producto con paleta CSS personalizada.
+-->
+---
+export interface Game {
+  id: number;
+  steam_app_id: number;
+  name: string;
+  cover_image_url: string | null;
+  description: string | null;
+  playtime_hours: number;
+  is_platinum: boolean;
+  platinum_date: string | null;
+  display_order: number;
+  achievement_pct?: number;
+  achievement_count?: number;
+}
+
+type Props = {
+  game: Game;
+};
+
+const { game } = Astro.props as Props;
+const pct = game.achievement_pct ?? 0;
+const hours = Math.round(game.playtime_hours);
+const isPlat = game.is_platinum;
+
+const cappedFull = Math.min(Math.floor(pct / 20), 5);
+const hasHalf = !isPlat && pct % 20 >= 10 && cappedFull < 5;
+const cappedEmpty = 5 - cappedFull - (hasHalf ? 1 : 0);
+---
+
+<div
+  data-game-id={game.id}
+  class="game-card group relative rounded-xl overflow-hidden cursor-pointer
+         bg-surface border border-border-card hover:border-border-hover
+         transition-all duration-300 hover:shadow-xl hover:shadow-accent/30 hover:-translate-y-0.5"
+>
+  <!-- Imagen -->
+  <div class="relative">
+    {game.cover_image_url ? (
+      <img src={game.cover_image_url} alt={game.name}
+           class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+           loading="lazy" />
+    ) : (
+      <div class="w-full h-48 flex items-center justify-center bg-surface">
+        <svg class="w-14 h-14 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+    )}
+    <div class="absolute inset-0 bg-gradient-to-t from-bg-base via-transparent to-transparent opacity-60" />
+
+    <!-- Badge -->
+    {isPlat ? (
+      <span class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold
+                   bg-platinum/15 text-platinum border border-platinum/40 backdrop-blur-md shadow-lg">
+        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18 5h2a3 3 0 010 6h-2M18 5H6m12 0v1a7 7 0 01-4 6.26V15h2a1 1 0 011 1v4a1 1 0 01-1 1H8a1 1 0 01-1-1v-4a1 1 0 011-1h2v-2.74A7 7 0 016 6V5m0 0H4a3 3 0 000 6h2"
+                stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        PLATINUM
+      </span>
+    ) : (
+      <span class="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold font-mono backdrop-blur-md shadow-lg border"
+            style="background: var(--badge-pct-bg); color: var(--badge-pct-text); border-color: var(--badge-pct-border)">
+        {pct}%
+      </span>
+    )}
+
+    <!-- Favorito -->
+    <button class="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/70 border border-border-card
+                   flex items-center justify-center text-accent-mid hover:text-accent-to
+                   hover:bg-surface hover:border-border-hover transition-all duration-200 shadow-lg"
+            title="Favorito">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15.7 4C18.87 4 21 6.98 21 9.76C21 15.39 12.16 20 12 20C11.84 20 3 15.39 3 9.76C3 6.98 5.13 4 8.3 4C10.12 4 11.31 4.91 12 5.71C12.69 4.91 13.88 4 15.7 4Z" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Contenido -->
+  <div class="p-4">
+    <!-- Titulo -->
+    <div class="flex justify-between items-start mb-2">
+      <div class="min-w-0 flex-1 mr-2">
+        <h2 class="text-lg font-semibold text-primary truncate group-hover:text-primary transition-colors">
+          {game.name}
+        </h2>
+        <p class="text-xs text-secondary mt-0.5">
+          Steam · App ID: {game.steam_app_id}
+        </p>
+      </div>
+    </div>
+
+    <!-- Horas -->
+    <div class="py-1.5">
+      <div class="flex items-baseline gap-3">
+        <span class="text-lg font-bold font-mono tracking-tight text-done">{hours}h</span>
+        <span class="text-xs text-muted line-through">
+          {hours > 0 ? `${Math.round(hours * 1.15)}h` : '—'}
+        </span>
+      </div>
+      {game.platinum_date && (
+        <p class="text-[10px] text-secondary mt-0.5 font-mono">
+          Platinado el {new Date(game.platinum_date).toLocaleDateString('es-MX')}
+        </p>
+      )}
+    </div>
+
+    <!-- Estrellas -->
+    <div class="flex items-center mb-2 mt-1">
+      {cappedFull > 0 && Array.from({ length: cappedFull }).map(() => (
+        <svg class="w-4 h-4 text-star-filled" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      ))}
+      {hasHalf && (
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <defs>
+            <linearGradient id="halfGrad">
+              <stop offset="50%" stop-color="#FFD700" />
+              <stop offset="50%" stop-color="oklch(0.35 0.04 280)" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill="url(#halfGrad)" />
+        </svg>
+      )}
+      {cappedEmpty > 0 && Array.from({ length: cappedEmpty }).map(() => (
+        <svg class="w-4 h-4 text-star-empty" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      ))}
+      <span class="text-secondary text-xs ml-2 font-mono">{pct}%</span>
+    </div>
+
+    <!-- Descripcion -->
+    <p class="text-secondary text-xs leading-relaxed mb-4 line-clamp-2">
+      {game.description || (isPlat
+        ? 'Todos los logros desbloqueados. Juego completado al 100%.'
+        : game.achievement_count && game.achievement_count > 0
+          ? `${Math.round(pct / 100 * game.achievement_count)}/${game.achievement_count} logros desbloqueados.`
+          : 'Sin datos de logros aun. Sincroniza desde Steam para ver el progreso.')}
+    </p>
+
+    <!-- Features -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-accent-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="text-[11px] text-secondary">{hours}h jugadas</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-accent-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+        <span class="text-[11px] text-secondary">{pct}% logros</span>
+      </div>
+    </div>
+
+    <!-- Botones -->
+    <div class="flex gap-2">
+      <button class="flex-1 bg-gradient-to-r from-btn-from to-btn-to text-btn-text py-2 px-4 rounded-full text-xs font-semibold
+                     hover:from-btn-hover-from hover:to-btn-hover-to transition-all duration-200
+                     shadow-lg shadow-accent/30 border border-accent/30">
+        Ver detalles
+      </button>
+      <button class="bg-surface text-accent-mid py-2 px-4 rounded-full text-xs font-semibold
+                     hover:bg-surface-hover hover:text-accent-to transition-all duration-200
+                     border border-border-card hover:border-border-hover">
+        Logros
+      </button>
+    </div>
+  </div>
+</div>
