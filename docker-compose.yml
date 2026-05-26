@@ -1,18 +1,18 @@
 services:
   app:
-    container_name: cn-agriamasito-app
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '6433:4321'
+      - "4321:4321"
     environment:
-      HOST: '0.0.0.0'
-      PORT: '4321'
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-3306}
-      DB_USER: ${DB_USER:-usr_agriamasito}
-      DB_PASSWORD: ${DB_PASSWORD:-pwd_agriamasito}
-      DB_NAME: ${DB_NAME:-db_agrimasito}    
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - STEAM_API_KEY=${STEAM_API_KEY}
+      - STEAM_USER_ID=${STEAM_USER_ID}
+    env_file:
+      - .env
     restart: always
-
