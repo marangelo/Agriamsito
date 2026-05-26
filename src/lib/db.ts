@@ -3,11 +3,11 @@ import mysql from 'mysql2/promise';
 // ── Pool de conexiones MySQL con mysql2/promise ──────────────
 // Las credenciales se leen exclusivamente desde variables de entorno.
 const pool = mysql.createPool({
-  host: import.meta.env.DB_HOST || 'localhost',
-  port: Number(import.meta.env.DB_PORT) || 3306,
-  user: import.meta.env.DB_USER || 'root',
-  password: import.meta.env.DB_PASSWORD || '',
-  database: import.meta.env.DB_NAME || 'platinum_showcase',
+  host: (import.meta.env.DB_HOST as string) || process.env.DB_HOST || 'localhost',
+  port: Number(import.meta.env.DB_PORT) || Number(process.env.DB_PORT) || 3306,
+  user: (import.meta.env.DB_USER as string) || process.env.DB_USER || 'root',
+  password: (import.meta.env.DB_PASSWORD as string) || process.env.DB_PASSWORD || '',
+  database: (import.meta.env.DB_NAME as string) || process.env.DB_NAME || 'platinum_showcase',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
