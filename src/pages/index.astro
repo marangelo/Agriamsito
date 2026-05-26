@@ -3,31 +3,66 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PlatinumCard from '../components/PlatinumCard.astro';
 import GameCard from '../components/GameCard.astro';
+import { query } from '../lib/db.ts';
 import type { Achievement } from '../components/AchievementList.astro';
-import type { GameWithStats } from './api/games.ts';
 import '../styles/global.css';
+
+interface GameRow {
+  id: number; steam_app_id: number; name: string;
+  cover_image_url: string | null; description: string | null;
+  icon_hash: string | null; playtime_hours: number;
+  is_platinum: number; platinum_date: string | null; display_order: number;
+}
+
+interface GameWithStats extends Omit<GameRow, 'is_platinum'> {
+  is_platinum: boolean;
+  achievement_pct: number;
+  achievement_total: number;
+}
 
 interface PlatinumGame extends GameWithStats { achievements: Achievement[]; }
 interface NormalGame extends GameWithStats { achievement_pct: number; }
 
-async function fetchApi<T>(path: string): Promise<T> {
-  try {
-    const res = await fetch(new URL(path, Astro.url));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json() as T;
-  } catch { return [] as unknown as T; }
-}
+// ── Cargar juegos directo desde MySQL (sin auto-fetch) ──────
+const platinumGames = await query<GameRow>(
+  `SELECT * FROM games WHERE is_platinum = true ORDER BY platinum_date DESC`,
+);
+const otherGames = await query<GameRow>(
+  `SELECT * FROM games WHERE is_platinum = false ORDER BY display_order ASC`,
+);
+const allGames = [...platinumGames, ...otherGames];
 
-const gamesResponse = await fetchApi<GameWithStats[]>('/api/games').catch(() => [] as GameWithStats[]);
-const games: GameWithStats[] = Array.isArray(gamesResponse) ? gamesResponse : [];
+const games: GameWithStats[] = await Promise.all(
+  allGames.map(async (g) => {
+    const total = await query<{ cnt: number }>(
+      'SELECT COUNT(*) as cnt FROM achievements WHERE game_id = ?', [g.id],
+    );
+    const unlocked = await query<{ cnt: number }>(
+      'SELECT COUNT(*) as cnt FROM achievements WHERE game_id = ? AND unlocked = true', [g.id],
+    );
+    const totalCount = total[0]?.cnt ?? 0;
+    const unlockedCount = unlocked[0]?.cnt ?? 0;
+    return {
+      ...g,
+      is_platinum: g.is_platinum === 1,
+      achievement_pct: totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0,
+      achievement_total: totalCount,
+    };
+  }),
+);
 
 const platinums: PlatinumGame[] = games.filter((g) => g.is_platinum).map((g) => ({ ...g, achievements: [] }));
 const library: NormalGame[] = games.filter((g) => !g.is_platinum);
 
+// Cargar logros de platinados
 for (const p of platinums) {
   try {
-    const res = await fetchApi<Achievement[]>(`/api/games/${p.id}/achievements`);
-    p.achievements = Array.isArray(res) ? res : [];
+    const rows = await query<Achievement>(
+      `SELECT id, steam_achievement_id, name, description, icon_url, unlocked, unlock_date
+       FROM achievements WHERE game_id = ? ORDER BY unlocked DESC, unlock_date DESC`,
+      [p.id],
+    );
+    p.achievements = rows as unknown as Achievement[];
   } catch { p.achievements = []; }
 }
 
