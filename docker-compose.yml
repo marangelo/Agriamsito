@@ -7,15 +7,15 @@ services:
     ports:
       - "6433:4321"
     environment:
-      - HOST: '0.0.0.0'
-      - PORT: '4321'
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - STEAM_API_KEY=${STEAM_API_KEY}
-      - STEAM_USER_ID=${STEAM_USER_ID}
+      HOST: '0.0.0.0'
+      PORT: '4321'
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      STEAM_API_KEY: ${STEAM_API_KEY}
+      STEAM_USER_ID: ${STEAM_USER_ID}
     env_file:
       - .env
     restart: always
