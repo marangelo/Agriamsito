@@ -19,3 +19,9 @@ services:
     env_file:
       - .env
     restart: always
+    networks:
+      - platinum-network
+
+networks:
+  platinum-network:
+    driver: bridge
