@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: cn-platinum-agriamsito
     build:
       context: .
       dockerfile: Dockerfile
